@@ -4,7 +4,7 @@
 //
 //  Created by Yakup Kavak on 1.04.2026.
 //
-
+/*
 import SwiftUI
 
 /// A single slice (piece) of the spin wheel.
@@ -12,7 +12,7 @@ import SwiftUI
 /// This view handles the rendering of an individual slice, including its background,
 /// text, and an optional image (either a system symbol or a custom image).
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-public struct YKSpinPieceUI<BackgroundView: View>: View {
+public struct YKPieceUI<BackgroundView: View>: View {
     
     // MARK: - Properties
     
@@ -31,7 +31,7 @@ public struct YKSpinPieceUI<BackgroundView: View>: View {
             
             ZStack {
                 backgroundView
-                    .clipShape(PieSliceShape(sliceAngle: sliceAngle))
+                    .clipShape(AnyShapeWrapper(shape: PieSliceShape(sliceAngle: sliceAngle)))
                 VStack(spacing: 8) {
                     if let sliceImage = resolvedImage {
                         sliceImage
@@ -54,7 +54,7 @@ public struct YKSpinPieceUI<BackgroundView: View>: View {
 // MARK: - Extensions for Initializers
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-public extension YKSpinPieceUI {
+public extension YKPieceUI {
     
     /// Initializes a spin piece with a system image (SF Symbols).
     ///
@@ -111,3 +111,30 @@ public extension YKSpinPieceUI {
         self.backgroundView = backgroundView
     }
 }
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+fileprivate struct AnyShapeWrapper: Shape {
+    let shape: any Shape
+
+    func path(in rect: CGRect) -> Path {
+        shape.path(in: rect)
+    }
+}
+
+
+// MARK: - Text Extension for Styling
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+fileprivate extension Text {
+    
+    /// Applies the predefined YK text style to the `Text` view.
+    ///
+    /// This style sets the font to `.headline`, the font weight to `.semibold`, the foreground color to `.primary`, and adds the `.isHeader` accessibility trait.
+    ///
+    /// - Returns: A modified `Text` view with the PKS text style applied.
+    func pksTextStyle() -> Text {
+        self
+            .font(.headline)
+            .fontWeight(.semibold)
+    }
+}
+*/

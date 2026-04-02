@@ -1,6 +1,6 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
-
+/*
 import SwiftUI
 
 struct DailySpinUI: View {
@@ -97,7 +97,7 @@ struct DailySpinUI: View {
 #Preview("Single Piece") {
     ZStack {
         Color.gray.opacity(0.1).ignoresSafeArea()
-        YKSpinPieceUI(
+        YKPieceUI(
             text: "100",
             systemImage: "heart.fill",
             sliceAngle: 45,
@@ -109,3 +109,5 @@ struct DailySpinUI: View {
         )
     }
 }
+
+*/
