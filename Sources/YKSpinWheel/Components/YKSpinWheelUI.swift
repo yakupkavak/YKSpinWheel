@@ -7,15 +7,25 @@
 
 import SwiftUI
 
+// MARK: - Constants
+
+/// Internal math constants for wheel calculations to avoid magic numbers.
+private enum WheelMathConstants {
+    /// A full circle in degrees.
+    static let fullCircleDegrees: Double = 360.0
+}
+
 // MARK: - YKSpinWheelUI View
 
-/// A customizable visual component for rendering a spin wheel.
+/// A customizable visual component for rendering a dynamic spin wheel.
 ///
-/// The `YKSpinWheelUI` struct provides a flexible and customizable wheel layout that iterates through an array of `SpinModel`s. It leverages SwiftUI's environment system to allow for extensive customization of its appearance, including the center hub's color, size, icon, and the top indicator pointer's properties.
+/// The `YKSpinWheelUI` struct provides a flexible wheel layout that iterates through an array of `SpinModel` items.
+/// It calculates the size of each piece dynamically based on its `weight` property, ensuring pieces are sized proportionally.
+/// It uses SwiftUI's environment system to allow for extensive appearance customization, including the center hub and the top indicator pointer.
 ///
-/// `YKSpinWheelUI` supports various initializers to accommodate different configurations, allowing you to pass custom views for the center hub and the top pointer, or fall back to the default styling via empty views.
+/// `YKSpinWheelUI` supports various initializers to fit different needs, allowing you to pass custom views for the center hub and the top pointer, or just fall back to the default styles.
 ///
-/// - Note: `YKSpinWheelUI` is marked with `@MainActor` to ensure that all UI updates occur on the main thread.
+/// - Note: `YKSpinWheelUI` is marked with `@MainActor` to ensure that all UI updates happen safely on the main thread.
 ///
 /// - Example:
 /// ```swift
@@ -43,58 +53,52 @@ public struct YKSpinWheelUI<Center: View, WheelTopPointer: View>: View {
     /// The array of models representing the slices of the wheel.
     public let spinModels: [SpinModel]
     
-    /// The dynamically calculated angle for each slice based on the total number of models.
-    private var sliceAngle: Double {
-        spinModels.isEmpty ? 360.0 : 360.0 / Double(spinModels.count)
-    }
-        
     // MARK: - Environment Variables (Center Hub)
     
-    /// The background color of the center hub, sourced from the environment.
+    /// The background color of the center hub.
     @Environment(\.ykCenterHubColor) private var centerHubColor
     
-    /// The size (width and height) of the center hub, sourced from the environment.
+    /// The size (width and height) of the center hub.
     @Environment(\.ykCenterHubSize) private var centerHubSize
     
-    /// The shadow color of the center hub, sourced from the environment.
+    /// The shadow color of the center hub.
     @Environment(\.ykCenterHubShadowColor) private var centerHubShadowColor
     
-    /// The shadow radius of the center hub, sourced from the environment.
+    /// The shadow radius of the center hub.
     @Environment(\.ykCenterHubShadowRadius) private var centerHubShadowRadius
     
-    /// The vertical shadow offset of the center hub, sourced from the environment.
+    /// The vertical shadow offset of the center hub.
     @Environment(\.ykCenterHubShadowY) private var centerHubShadowY
     
-    /// The color of the icon inside the center hub, sourced from the environment.
+    /// The color of the icon inside the center hub.
     @Environment(\.ykCenterIconColor) private var centerIconColor
     
-    /// The size of the icon inside the center hub, sourced from the environment.
+    /// The size of the icon inside the center hub.
     @Environment(\.ykCenterIconSize) private var centerIconSize
     
-    /// The SF Symbol name for the center hub icon, sourced from the environment.
+    /// The SF Symbol name for the center hub icon.
     @Environment(\.ykCenterIconName) private var centerIconName
     
     // MARK: - Environment Variables (Pointer)
     
-    /// The color of the top indicator pointer, sourced from the environment.
+    /// The color of the top indicator pointer.
     @Environment(\.ykPointerColor) private var pointerColor
     
-    /// The width of the top indicator pointer, sourced from the environment.
+    /// The width of the top indicator pointer.
     @Environment(\.ykPointerWidth) private var pointerWidth
     
-    /// The height of the top indicator pointer, sourced from the environment.
+    /// The height of the top indicator pointer.
     @Environment(\.ykPointerHeight) private var pointerHeight
     
-    /// The Y offset of the top indicator pointer to adjust overlap, sourced from the environment.
+    /// The vertical offset of the top indicator pointer.
     @Environment(\.ykPointerOffset) private var pointerOffset
     
     // MARK: - Animation
     
-    /// The calculated animation curve based on the environment variables.
+    /// The calculated animation curve based on the controller's active spin duration.
     private var spinAnimation: Animation {
         Animation
-            .easeOut(duration: Double(controller.spinRepeatCount) * controller.spinTime)
-            .repeatCount(controller.spinRepeatCount, autoreverses: false)
+            .easeOut(duration: Double(controller.animationDuration))
     }
     
     // MARK: - Initialization
@@ -130,18 +134,15 @@ public struct YKSpinWheelUI<Center: View, WheelTopPointer: View>: View {
             let wheelRadius = minDimension / 2.0
             
             ZStack {
-                
-                // MARK: Wheel Slices
                 Group {
                     ForEach(Array(spinModels.enumerated()), id: \.element.id) { index, model in
-                        buildPiece(for: model)
-                            .rotationEffect(Angle(degrees: Double(index) * sliceAngle))
+                        buildPiece(for: model, sliceAngle: spinSliceAngle(for: model))
+                            .rotationEffect(Angle(degrees: centerAngle(for: index)))
                     }
                 }
                 .rotationEffect(Angle(degrees: controller.spinDegrees))
                 .animation(spinAnimation, value: controller.spinDegrees)
                 
-                // MARK: Center Hub Component
                 if Center.self == EmptyView.self {
                     ZStack {
                         Circle()
@@ -158,7 +159,6 @@ public struct YKSpinWheelUI<Center: View, WheelTopPointer: View>: View {
                     center
                 }
                 
-                // MARK: Top Indicator Triangle
                 if WheelTopPointer.self == EmptyView.self {
                     TriangleShape()
                         .fill(pointerColor)
@@ -174,15 +174,45 @@ public struct YKSpinWheelUI<Center: View, WheelTopPointer: View>: View {
     }
 }
 
+// MARK: - Math Helpers
+
+private extension YKSpinWheelUI {
+    
+    /// The total combined weight of all models in the wheel.
+    var totalWeight: Double {
+        spinModels.reduce(0.0) { $0 + $1.weight }
+    }
+    
+    /// Calculates the specific angle (width) for a single piece based on its weight.
+    func spinSliceAngle(for model: SpinModel) -> Double {
+        totalWeight == 0 ? 0 : (model.weight / totalWeight) * WheelMathConstants.fullCircleDegrees
+    }
+    
+    /// Calculates the exact rotation angle needed to position a piece perfectly on the wheel.
+    /// It keeps the very first piece centered at the top.
+    func centerAngle(for index: Int) -> Double {
+        if totalWeight == 0 { return 0 }
+        
+        var previousWeights = 0.0
+        for i in 0..<index {
+            previousWeights += spinModels[i].weight
+        }
+        
+        let currentWeight = spinModels[index].weight
+        let firstWeight = spinModels.first?.weight ?? 0
+        let offsetWeight = previousWeights + (currentWeight / 2.0) - (firstWeight / 2.0)
+        
+        return (offsetWeight / totalWeight) * WheelMathConstants.fullCircleDegrees
+    }
+}
+
 // MARK: - View Builders
 
 private extension YKSpinWheelUI {
     
-    /// Constructs the individual slice (piece) based on the provided model data.
-    ///
-    /// Extracted into a separate `@ViewBuilder` to prevent SwiftUI compiler timeouts and keep the rendering tree clean.
+    /// Creates the individual slice (piece) based on the provided model data and its calculated angle.
     @ViewBuilder
-    func buildPiece(for model: SpinModel) -> some View {
+    func buildPiece(for model: SpinModel, sliceAngle: Double) -> some View {
         if let sfImage = model.sfImageName {
             if let textKey = model.textKey {
                 YKPieceUI(titleKey: textKey, systemImage: sfImage, sliceAngle: sliceAngle, backgroundView: model.background)
@@ -217,23 +247,18 @@ private extension YKSpinWheelUI {
     }
 }
 
-// MARK: - YKSpinWheelUI Extensions for Specific Initializers
+// MARK: - Extensions for Specific Initializers
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-extension YKSpinWheelUI where Center == EmptyView, WheelTopPointer == EmptyView {
+public extension YKSpinWheelUI where Center == EmptyView, WheelTopPointer == EmptyView {
     
     /// Initializes a `YKSpinWheelUI` with the default center hub and default top pointer.
     ///
     /// - Parameters:
     ///   - spinModels: An array of `SpinModel` representing the data for each slice.
     ///   - controller: The `YKSpinController` managing the spin state.
-    ///
-    /// - Example:
-    /// ```swift
-    /// YKSpinWheelUI(spinModels: models, controller: myController)
-    /// ```
     @MainActor
-    public init(spinModels: [SpinModel], controller: YKSpinController) {
+    init(spinModels: [SpinModel], controller: YKSpinController) {
         self.spinModels = spinModels
         self.controller = controller
         self.center = EmptyView()
@@ -242,7 +267,7 @@ extension YKSpinWheelUI where Center == EmptyView, WheelTopPointer == EmptyView 
 }
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-extension YKSpinWheelUI where Center == EmptyView {
+public extension YKSpinWheelUI where Center == EmptyView {
     
     /// Initializes a `YKSpinWheelUI` with a custom top pointer and the default center hub.
     ///
@@ -250,15 +275,8 @@ extension YKSpinWheelUI where Center == EmptyView {
     ///   - spinModels: An array of `SpinModel` representing the data for each slice.
     ///   - controller: The `YKSpinController` managing the spin state.
     ///   - wheelTopPointer: A view builder that provides a custom top pointer.
-    ///
-    /// - Example:
-    /// ```swift
-    /// YKSpinWheelUI(spinModels: models, controller: myController) {
-    ///     Image(systemName: "arrow.down")
-    /// }
-    /// ```
     @MainActor
-    public init(
+    init(
         spinModels: [SpinModel],
         controller: YKSpinController,
         @ViewBuilder wheelTopPointer: () -> WheelTopPointer
@@ -271,7 +289,7 @@ extension YKSpinWheelUI where Center == EmptyView {
 }
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-extension YKSpinWheelUI where WheelTopPointer == EmptyView {
+public extension YKSpinWheelUI where WheelTopPointer == EmptyView {
     
     /// Initializes a `YKSpinWheelUI` with a custom center hub and the default top pointer.
     ///
@@ -279,17 +297,8 @@ extension YKSpinWheelUI where WheelTopPointer == EmptyView {
     ///   - spinModels: An array of `SpinModel` representing the data for each slice.
     ///   - controller: The `YKSpinController` managing the spin state.
     ///   - center: A view builder that provides a custom center hub.
-    ///
-    /// - Example:
-    /// ```swift
-    /// YKSpinWheelUI(spinModels: models, controller: myController) {
-    ///     Text("SPIN")
-    ///         .font(.caption)
-    ///         .bold()
-    /// }
-    /// ```
     @MainActor
-    public init(
+    init(
         spinModels: [SpinModel],
         controller: YKSpinController,
         @ViewBuilder center: () -> Center
@@ -308,94 +317,95 @@ struct YKSpinWheelUI_Previews: PreviewProvider {
     
     struct WheelTestContainer: View {
         
-        @StateObject var spinController = YKSpinController()
+        let sampleModels: [SpinModel]
+        @State var spinControllers: [YKSpinController]
+        @State private var isSpinningAll: Bool = false
         
-        var body: some View {
-            
-            let sampleModels: [SpinModel] = [
-                
-                SpinModel(
-                    id: 1,
-                    text: "PASS",
-                    background: Color.red
-                ),
-                
-                SpinModel(
-                    id: 2,
-                    text: "1000",
-                    sfImageName: "star.fill",
-                    background: Color.orange
-                ),
-                
-                SpinModel(
-                    id: 3,
-                    sfImageName: "gift.fill",
-                    background: Color.green
-                ),
-
+        init() {
+            let models = [
+                SpinModel(id: 1, text: "PASS", weight: 1.0, background: Color.red),
+                SpinModel(id: 2, text: "1000", sfImageName: "star.fill", weight: 2.5, background: Color.orange),
+                SpinModel(id: 3, sfImageName: "gift.fill", weight: 1.0, background: Color.green),
                 SpinModel(
                     id: 4,
                     text: "VIP",
                     customImage: AnyView(
                         ZStack {
-                            Circle()
-                                .fill(Color.white)
-                                .shadow(radius: 2)
-                            Text("KF")
-                                .font(.caption2)
-                                .bold()
-                                .foregroundColor(.purple)
+                            Circle().fill(Color.white).shadow(radius: 2)
+                            Text("KF").font(.caption2).bold().foregroundColor(.purple)
                         }.frame(width: 40, height: 40)
                     ),
+                    weight: 1.5,
                     background: Color.purple
                 ),
-                
-                SpinModel(
-                    id: 5,
-                    text: "500",
-                    image: Image(systemName: "bolt.fill"),
-                    background: Color.blue
-                ),
-                
-                SpinModel(
-                    id: 6,
-                    text: "BANKRUPT",
-                    background: Color.black
-                )
+                SpinModel(id: 5, text: "500", image: Image(systemName: "bolt.fill"), weight: 1.0, background: Color.blue),
+                SpinModel(id: 6, text: "BANKRUPT", weight: 2.0, background: Color.black)
             ]
-            
+            self.sampleModels = models
+            _spinControllers = State(initialValue: (0..<100).map { _ in YKSpinController(models: models) })
+        }
+        
+        var body: some View {
             ZStack {
                 Color(red: 0.95, green: 0.95, blue: 0.97)
                     .ignoresSafeArea()
                 
-                VStack(spacing: 50) {
-                    Text("YKSpinWheelUI")
+                VStack(spacing: 20) {
+                    
+                    Text("100 Spins Test")
                         .font(.largeTitle)
                         .fontWeight(.heavy)
                         .foregroundColor(.primary)
+                        .padding(.top, 20)
                     
-                    // Çarkıfelek Görünümü
-                    YKSpinWheelUI(spinModels: sampleModels, controller: spinController)
-                        .shadow(color: .black.opacity(0.1), radius: 15, x: 0, y: 10)
-                        // Özelleştirme Örnekleri (Görmek için yorum satırlarını kaldırabilirsiniz):
-                        // .ykCenterHubColor(.black)
-                        // .ykCenterIconColor(.yellow)
-                        // .ykCenterIconName("play.fill")
-                        // .ykPointerColor(.orange)
-                        // .ykPointerOffset(8)
-                        // .ykPointerWidth(40)
-                    
-                    Button("Test Spin") {
-                        Task {
-                            _ = await spinController.startSpin(models: sampleModels)
+                    Button("Test All 100 Spins") {
+                        isSpinningAll = true
+                        
+                        Task { @MainActor in
+                            var spinTasks: [Task<Void, Never>] = []
+                            for controller in spinControllers {
+                                let task = Task { @MainActor in
+                                    _ = await controller.startSpin(spinTime: 3.0, spinTurns: 5)
+                                }
+                                spinTasks.append(task)
+                            }
+                            for task in spinTasks {
+                                await task.value
+                            }
+                            isSpinningAll = false
                         }
                     }
                     .padding()
-                    .frame(width: 150)
-                    .background(Color.blue)
+                    .frame(width: 220)
+                    .background(isSpinningAll ? Color.gray : Color.blue)
                     .foregroundColor(.white)
                     .cornerRadius(12)
                     .shadow(color: .blue.opacity(0.3), radius: 5, x: 0, y: 3)
+                    .disabled(isSpinningAll)
+                    
+                    ScrollView {
+                        LazyVStack(spacing: 60) {
+                            ForEach(Array(spinControllers.enumerated()), id: \.offset) { index, controller in
+                                VStack(spacing: 15) {
+                                    Text("Wheel #\(index + 1)")
+                                        .font(.headline)
+                                        .foregroundColor(.gray)
+                                    
+                                    YKSpinWheelUI(spinModels: sampleModels, controller: controller)
+                                        .frame(width: 250, height: 250)
+                                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                                        .ykPieceNormalLineLimit(1)
+                                        .ykCenterHubColor(.black)
+                                        .ykCenterIconColor(.yellow)
+                                        .ykCenterIconName("play.fill")
+                                        .ykPointerColor(.orange)
+                                        .ykPointerOffset(8)
+                                        .ykPointerWidth(30)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 20)
+                    }
                 }
             }
         }

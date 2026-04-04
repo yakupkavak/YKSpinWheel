@@ -93,4 +93,20 @@ public extension View {
     func ykPieceShadowY(_ yOffset: CGFloat) -> some View {
         environment(\.ykPieceShadowY, yOffset)
     }
+    
+    /// Sets the maximum number of text lines for a normal (wide) slice in `YKPieceUI`.
+    ///
+    /// By default, a normal slice limits text to 2 lines. You can use this modifier to allow more lines or restrict it to a single line.
+    ///
+    /// - Parameter limit: The maximum number of lines.
+    /// - Returns: A view that applies the specified line limit.
+    ///
+    /// - Example:
+    /// ```swift
+    /// YKPieceUI(...)
+    ///     .ykPieceNormalLineLimit(3)
+    /// ```
+    func ykPieceNormalLineLimit(_ limit: Int) -> some View {
+        environment(\.ykPieceNormalLineLimit, limit)
+    }
 }

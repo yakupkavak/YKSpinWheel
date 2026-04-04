@@ -8,16 +8,14 @@
 import SwiftUI
 
 // MARK: - Constants
-// Avoiding magic numbers by defining clear constants for layout and styling ratios.
 
+/// Internal layout constants to avoid magic numbers.
+/// These ratios help scale the content relative to the wheel's radius.
 private enum PieceLayoutConstants {
-    /// The maximum angle (in degrees) for a slice to be considered "thin". Thin slices layout their content vertically.
-    static let thinSliceAngleThreshold: Double = 35.0
-    
-    /// The radial ratio used to position content (icon/text) closer to the outer edge on a thin slice.
+    /// The radial ratio used to position content closer to the outer edge on a thin slice.
     static let thinSliceContentRadiusRatio: CGFloat = 0.52
     
-    /// The radial ratio used to position content (icon/text) closer to the outer edge on a normal (wide) slice.
+    /// The radial ratio used to position content closer to the outer edge on a normal (wide) slice.
     static let normalSliceContentRadiusRatio: CGFloat = 0.62
     
     /// The vertical offset ratio applied to the overall content to visually balance it within the slice shape.
@@ -43,12 +41,21 @@ private enum PieceLayoutConstants {
 
 /// A single customizable slice (piece) of the spin wheel.
 ///
-/// The `YKPieceUI` struct provides a flexible slice component that handles the rendering of its background, an optional image, a custom view (like KFImage), and an optional localized text.
-/// It leverages SwiftUI's environment system to allow for extensive customization, such as the vertical spacing between the image and text, corner radiuses, and shadow properties.
+/// The `YKPieceUI` struct provides a highly flexible and dynamic slice component. It manages the rendering of its background, an optional image, a custom view, and localized text.
+/// It seamlessly integrates with SwiftUI's environment system, allowing extensive customization for dimensions, colors, shadows, layout thresholds, and even custom clipping shapes.
 ///
-/// `YKPieceUI` calculates its own geometry and intelligently switches its content layout (horizontal vs. vertical text) based on the width (angle) of the slice.
+/// `YKPieceUI` calculates its own geometry and intelligently adapts its layout (e.g., horizontal vs. vertical text stacking) based on the slice's angle.
 ///
-/// - Note: `YKPieceUI` is marked with `@MainActor` to ensure that all UI updates occur on the main thread.
+/// - Note: `YKPieceUI` is marked with `@MainActor` to ensure all UI updates happen securely on the main thread.
+///
+/// - Example:
+/// ```swift
+/// YKPieceUI(title: "Jackpot", systemImage: "star.fill", sliceAngle: 45.0, backgroundView: AnyView(Color.gold))
+///     .ykPieceTextColor(.white)
+///     .ykPieceThinSliceAngleThreshold(40.0)
+///     .ykPieceNormalLineLimit(3)
+///     .ykPieceShape(Capsule()) // Optional custom clipping shape
+/// ```
 @MainActor
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 public struct YKPieceUI: View {
@@ -64,7 +71,7 @@ public struct YKPieceUI: View {
     /// The internal resolved image to display. Optional.
     fileprivate let resolvedImage: Image?
     
-    /// The internal resolved custom view (like KFImage) to display. Optional.
+    /// The internal resolved custom view to display. Optional.
     fileprivate let resolvedCustomImage: AnyView?
     
     /// The internal resolved text to display, supporting localization. Optional.
@@ -72,68 +79,71 @@ public struct YKPieceUI: View {
     
     // MARK: - Environment Variables
     
-    /// The vertical spacing between the image and the text, sourced from the environment.
+    /// The vertical spacing between the image and the text.
     @Environment(\.ykPieceVerticalSpacing) private var verticalSpacing
     
-    /// The spacing angle (gap) between adjacent slices, sourced from the environment.
+    /// The spacing angle (gap) between adjacent slices.
     @Environment(\.ykPieceSpacingAngle) private var spacingAngle
     
-    /// The radius of the inner hole of the wheel, sourced from the environment.
+    /// The radius of the inner hole of the wheel piece.
     @Environment(\.ykPieceInnerRadius) private var innerRadius
     
-    /// The corner radius of the slice's outer edges, sourced from the environment.
+    /// The corner radius of the slice's outer edges.
     @Environment(\.ykPieceCornerRadius) private var cornerRadius
     
-    /// The color of the text within the slice, sourced from the environment.
+    /// The color of the text within the slice.
     @Environment(\.ykPieceTextColor) private var textColor
     
-    /// The shadow color applied to the content within the slice, sourced from the environment.
+    /// The shadow color applied to the content within the slice.
     @Environment(\.ykPieceShadowColor) private var shadowColor
     
-    /// The shadow radius applied to the content within the slice, sourced from the environment.
+    /// The shadow radius applied to the content within the slice.
     @Environment(\.ykPieceShadowRadius) private var shadowRadius
     
-    /// The vertical shadow offset applied to the content within the slice, sourced from the environment.
+    /// The vertical shadow offset applied to the content within the slice.
     @Environment(\.ykPieceShadowY) private var shadowY
+    
+    /// The maximum angle (in degrees) for a slice to be considered "thin".
+    @Environment(\.ykPieceThinSliceAngleThreshold) private var thinSliceAngleThreshold
+    
+    /// The maximum number of lines allowed for text when the slice is NOT thin.
+    @Environment(\.ykPieceNormalLineLimit) private var normalLineLimit
 
-    /// Determines if the slice is too thin to display text horizontally based on a predefined threshold.
+    /// Determines if the slice is too thin to display text horizontally based on the environment threshold.
     private var isThinSlice: Bool {
-        return sliceAngle <= PieceLayoutConstants.thinSliceAngleThreshold
+        return sliceAngle <= thinSliceAngleThreshold
     }
 
     // MARK: - Body
     
     /// The body of the `YKPieceUI` view.
     ///
-    /// It calculates the necessary geometry to create a pie slice shape, clips the background view to this shape, and precisely positions the content (text, image, or custom view) along the central axis of the slice.
+    /// It calculates the necessary geometry, applies either a default pie slice shape or a custom shape provided via the environment, and precisely positions the content along the central radial axis.
     public var body: some View {
         GeometryReader { geometry in
             let rect = CGRect(origin: .zero, size: geometry.size)
             let center = CGPoint(x: rect.midX, y: rect.midY)
             let outerRadius = min(rect.width, rect.height) / 2
-            
-            // Calculate the start, end, and mid angles for the slice shape.
             let startAngle = Angle(degrees: -90 - (sliceAngle / 2) + spacingAngle)
             let endAngle = Angle(degrees: -90 + (sliceAngle / 2) - spacingAngle)
             let midAngle = Angle(radians: (startAngle.radians + endAngle.radians) / 2)
-            
-            // Calculate how far from the center the content should be placed.
             let contentRadiusRatio = isThinSlice ? PieceLayoutConstants.thinSliceContentRadiusRatio : PieceLayoutConstants.normalSliceContentRadiusRatio
             let contentRadius: CGFloat = innerRadius + (outerRadius - innerRadius) * contentRadiusRatio
-            
             let contentX = center.x + contentRadius * CGFloat(cos(midAngle.radians))
             let contentY = center.y + contentRadius * CGFloat(sin(midAngle.radians))
             
             ZStack {
-                backgroundView
-                    .clipShape(
-                        PieSliceShape(
-                            sliceAngle: sliceAngle,
-                            spacingAngle: spacingAngle,
-                            innerRadius: innerRadius,
-                            cornerRadius: cornerRadius
+                Group {
+                    backgroundView
+                        .clipShape(
+                            PieSliceShape(
+                                sliceAngle: sliceAngle,
+                                spacingAngle: spacingAngle,
+                                innerRadius: innerRadius,
+                                cornerRadius: cornerRadius
+                            )
                         )
-                    )
+                }
                 contentView(radius: outerRadius)
                     .position(x: contentX, y: contentY)
             }
@@ -141,14 +151,12 @@ public struct YKPieceUI: View {
     }
 }
 
-// MARK: - Subviews & Modifiers (DRY Principle)
+// MARK: - Subviews & Modifiers
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 private extension YKPieceUI {
     
-    /// The main view builder that constructs the content inside the slice based on available properties.
-    ///
-    /// It handles various combinations: Text only, Image only, Custom View only, or combinations of these. It also adjusts the layout based on whether the slice is considered "thin".
+    /// Constructs the content inside the slice based on available properties.
     ///
     /// - Parameter radius: The calculated outer radius of the wheel, used for scaling the content.
     /// - Returns: A composed view representing the slice's content.
@@ -208,20 +216,12 @@ private extension YKPieceUI {
     }
     
     /// Applies standardized typography, color, and scaling modifications to a text view.
-    ///
-    /// - Parameters:
-    ///   - text: The text view to style.
-    ///   - radius: The outer radius of the wheel, used as a base for calculating the font size.
-    ///   - fontSizeScale: The multiplier to determine the font size relative to the radius.
-    ///   - minScale: The minimum scale factor to allow text to shrink.
-    ///   - widthScale: The multiplier to determine the maximum width of the text frame relative to the radius.
-    /// - Returns: A styled text view.
     @ViewBuilder
     func styledText(_ text: Text, radius: CGFloat, fontSizeScale: CGFloat, minScale: CGFloat, widthScale: CGFloat) -> some View {
         text
             .font(.system(size: radius * fontSizeScale, weight: .heavy, design: .rounded))
             .foregroundColor(textColor)
-            .lineLimit(isThinSlice ? 1 : 2)
+            .lineLimit(isThinSlice ? 1 : normalLineLimit)
             .minimumScaleFactor(minScale)
             .frame(width: radius * widthScale)
             .multilineTextAlignment(.center)
@@ -229,12 +229,6 @@ private extension YKPieceUI {
     }
     
     /// Applies standardized sizing and shadow modifiers to an image view.
-    ///
-    /// - Parameters:
-    ///   - image: The image view to style.
-    ///   - radius: The outer radius of the wheel, used as a base for calculating the image size.
-    ///   - widthScale: The multiplier to determine the image width relative to the radius.
-    /// - Returns: A styled image view.
     @ViewBuilder
     func styledImage(_ image: Image, radius: CGFloat, widthScale: CGFloat) -> some View {
         image
