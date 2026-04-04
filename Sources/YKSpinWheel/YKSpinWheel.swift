@@ -1,113 +1,90 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-/*
+//
+//  DailySpinUI.swift
+//  YKSpinWheel
+//
+//  Created by Yakup Kavak on 1.04.2026.
+//
+
 import SwiftUI
 
-struct DailySpinUI: View {
+// MARK: - DailySpinUI View
+
+/// A functional, interactive view that wraps the `YKSpinWheelUI` and provides
+/// the spinning animation, physics, and interaction logic.
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+public struct DailySpinUI: View {
     
-    // MARK: - PROPERTIES
+    // MARK: - Properties
     
-    let list: [SpinModel]
-    //let centerView: CenterView
+    @ObservedObject var controller = YKSpinController()
     
-    // MARK: - ENVIRONMENT VARIABLES
+    /// The list of models that represent the slices on the wheel.
+    public let list: [SpinModel]
     
-    /// The background color of the card, sourced from the environment.
-    @Environment(\.ykBaseSpinRotationDegrees) private var baseRotationRegrees
+    // MARK: - Initialization
     
-    /// The background color of the card, sourced from the environment.
-    @Environment(\.ykSpinTime) private var spinTime
+    public init(list: [SpinModel]) {
+        self.list = list
+    }
     
-    /// The background color of the card, sourced from the environment.
-    @Environment(\.ykSpinRepeatCount) private var spinRepeatCount
+    // MARK: - Body
     
-    /// The background color of the card, sourced from the environment.
-    @Environment(\.ykSpinRandomMinValue) private var minRandomSpinValue
+    public var body: some View {
+        VStack(spacing: 50) {
+            YKSpinWheelUI(spinModels: list, controller: controller)
+        }
+    }
     
-    /// The background color of the card, sourced from the environment.
-    @Environment(\.ykSpinRandomMaxValue) private var maxRandomSpinValue
-    
-    // MARK: - PRIVATE VARIABLES
-    
-    
-    @State private var isAnimating = false
-    @State private var spinDegrees = 0.0
-    @State private var rand = 0.0
-    @State private var newAngle = 0.0
-    
-    var spinAnimation: Animation {
-       Animation.easeOut(duration: spinTime)
-         .repeatCount(spinRepeatCount, autoreverses: false)
-   }
-    
-    // MARK: - UI
-    
-    var body: some View {
-        VStack {
-            Image(".dailySpinIcon")
-                        .resizable()
-                        .scaledToFit()
-                        .rotationEffect(Angle(degrees: spinDegrees))
-                        .frame(width: 245, height: 245, alignment: .center)
-                        .animation(spinAnimation)
-            Button("ClickForSpin") {
-                isAnimating = true
-                rand = Double.random(in: minRandomSpinValue...maxRandomSpinValue)
-                spinDegrees += baseRotationRegrees + rand
-                //newAngle = getAngle(angle: spinDegrees)
-                DispatchQueue.main.asyncAfter(deadline: .now() + spinTime - 0.1) {
-                    isAnimating = false
+}
+
+// MARK: - Previews
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+struct DailySpinUI_Previews: PreviewProvider {
+    static var previews: some View {
+        
+        let sampleModels: [SpinModel] = [
+            SpinModel(id: 1, text: "100", sfImageName: "star.fill", background: Color.pink.opacity(0.4)),
+            SpinModel(id: 2, text: "5", sfImageName: "bolt.fill", background: Color.cyan.opacity(0.3)),
+            SpinModel(id: 3, text: "1", sfImageName: "gift.fill", background: Color.yellow.opacity(0.4)),
+            SpinModel(id: 4, text: "5", sfImageName: "heart.fill", background: Color.purple.opacity(0.3)),
+            SpinModel(id: 5, text: "50", sfImageName: "crown.fill", background: Color.cyan.opacity(0.5)),
+            SpinModel(id: 6, text: "3", sfImageName: "diamond.fill", background: Color.orange.opacity(0.4)),
+            SpinModel(id: 7, text: "5", sfImageName: "trophy.fill", background: Color.teal.opacity(0.3)),
+            SpinModel(id: 8, text: "2", sfImageName: "flame.fill", background: Color.red.opacity(0.3))
+        ]
+        
+        Group {
+            ZStack {
+                Color(red: 0.95, green: 0.97, blue: 1.0).ignoresSafeArea()
+                
+                VStack(spacing: 60) {
+                    Text("Daily Spin")
+                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .foregroundColor(.gray.opacity(0.8))
+                    
+                    DailySpinUI(list: sampleModels)
                 }
             }
-        }
-    }
-}
-
-// MARK: - PREVIEW
-
-#Preview("Full Wheel UI") {
-    let sampleSpinModels: [SpinModel] = [
-        SpinModel(id: 1, image: "star.fill", text: "100", background: .pink.opacity(0.4)),
-        SpinModel(id: 2, image: "bolt.fill", text: "5", background: .cyan.opacity(0.3)),
-        SpinModel(id: 3, image: "gift.fill", text: "1", background: .yellow.opacity(0.4)),
-        SpinModel(id: 4, image: "heart.fill", text: "5", background: .purple.opacity(0.3)),
-        SpinModel(id: 5, image: "crown.fill", text: "50", background: .cyan.opacity(0.5)),
-        SpinModel(id: 6, image: "diamond.fill", text: "3", background: .orange.opacity(0.4)),
-        SpinModel(id: 7, image: "trophy.fill", text: "5", background: .teal.opacity(0.3)),
-        SpinModel(id: 8, image: "burn", text: "2", background: .red.opacity(0.3))
-    ]
-    ZStack {
-        Color(red: 0.95, green: 0.97, blue: 1.0).ignoresSafeArea()
-        
-        VStack(spacing: 40) {
-            Text("Congratulations!")
-                .font(.system(size: 32, weight: .heavy, design: .rounded))
-                .foregroundColor(.gray.opacity(0.8))
+            .previewDisplayName("Full Interactive Wheel")
             
-            DailySpinWheelUI(spinModels: sampleSpinModels)
+            ZStack {
+                Color.gray.opacity(0.1).ignoresSafeArea()
+                YKPieceUI(
+                    title: "100",
+                    systemImage: "heart.fill",
+                    sliceAngle: 45,
+                    backgroundView: AnyView(
+                        LinearGradient(
+                            colors: [Color.pink.opacity(0.4), Color.cyan.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                )
+                .frame(width: 300, height: 300)
+            }
+            .previewDisplayName("Single Piece Isolation")
         }
     }
 }
-
-#Preview("Full Spin UI") {
-    let list: [SpinModel] = [.init(id: 1)]
-    DailySpinUI(list: list)
-}
-
-#Preview("Single Piece") {
-    ZStack {
-        Color.gray.opacity(0.1).ignoresSafeArea()
-        YKPieceUI(
-            text: "100",
-            systemImage: "heart.fill",
-            sliceAngle: 45,
-            backgroundView: LinearGradient(
-                colors: [Color.pink.opacity(0.4), Color.cyan.opacity(0.3)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-    }
-}
-
-*/
