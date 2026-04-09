@@ -29,7 +29,7 @@ private enum PieceLayoutConstants {
     static let textScaleThinSliceOnly: CGFloat = 0.09
     static let textScaleNormalSliceOnly: CGFloat = 0.15
     static let textWidthScaleThinSlice: CGFloat = 0.28
-    static let textWidthScaleNormalSlice: CGFloat = 0.55
+    static let textWidthScaleNormalSlice: CGFloat = 0.5
     static let textScaleThinSliceCombined: CGFloat = 0.10
     static let textScaleNormalSliceCombined: CGFloat = 0.12
     static let imageWidthScaleThinSlice: CGFloat = 0.16
@@ -76,6 +76,9 @@ public struct YKPieceUI: View {
     
     /// The internal resolved text to display, supporting localization. Optional.
     fileprivate let resolvedText: Text?
+    
+    /// An optional color to override the default text color for this specific slice.
+    fileprivate let resolvedTextColor: Color?
     
     // MARK: - Environment Variables
     
@@ -220,7 +223,7 @@ private extension YKPieceUI {
     func styledText(_ text: Text, radius: CGFloat, fontSizeScale: CGFloat, minScale: CGFloat, widthScale: CGFloat) -> some View {
         text
             .font(.system(size: radius * fontSizeScale, weight: .heavy, design: .rounded))
-            .foregroundColor(textColor)
+            .foregroundColor(resolvedTextColor ?? textColor)
             .lineLimit(isThinSlice ? 1 : normalLineLimit)
             .minimumScaleFactor(minScale)
             .frame(width: radius * widthScale)
@@ -245,56 +248,62 @@ private extension YKPieceUI {
 public extension YKPieceUI {
     
     /// Initializes a `YKPieceUI` with a localized title, a system image, and a background.
-    init(titleKey: LocalizedStringKey, systemImage: String, sliceAngle: Double, backgroundView: AnyView) {
+    init(titleKey: LocalizedStringKey, systemImage: String, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) {
         self.resolvedText = Text(titleKey)
         self.resolvedImage = Image(systemName: systemImage)
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with a localized title, a custom image asset, and a background.
-    init(titleKey: LocalizedStringKey, image: Image, sliceAngle: Double, backgroundView: AnyView) {
+    init(titleKey: LocalizedStringKey, image: Image, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) {
         self.resolvedText = Text(titleKey)
         self.resolvedImage = image
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with a standard string title, a system image, and a background.
-    init<S>(title: S, systemImage: String, sliceAngle: Double, backgroundView: AnyView) where S: StringProtocol {
+    init<S>(title: S, systemImage: String, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) where S: StringProtocol {
         self.resolvedText = Text(title)
         self.resolvedImage = Image(systemName: systemImage)
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with a standard string title, a custom image asset, and a background.
-    init<S>(title: S, image: Image, sliceAngle: Double, backgroundView: AnyView) where S: StringProtocol {
+    init<S>(title: S, image: Image, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) where S: StringProtocol {
         self.resolvedText = Text(title)
         self.resolvedImage = image
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with a localized title, a custom SwiftUI view, and a background.
-    init(titleKey: LocalizedStringKey, customImage: AnyView, sliceAngle: Double, backgroundView: AnyView) {
+    init(titleKey: LocalizedStringKey, customImage: AnyView, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) {
         self.resolvedText = Text(titleKey)
         self.resolvedImage = nil
         self.resolvedCustomImage = customImage
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with a standard string title, a custom SwiftUI view, and a background.
-    init<S>(title: S, customImage: AnyView, sliceAngle: Double, backgroundView: AnyView) where S: StringProtocol {
+    init<S>(title: S, customImage: AnyView, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) where S: StringProtocol {
         self.resolvedText = Text(title)
         self.resolvedImage = nil
         self.resolvedCustomImage = customImage
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
@@ -304,6 +313,7 @@ public extension YKPieceUI {
         self.resolvedImage = nil
         self.resolvedCustomImage = customImage
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = nil
         self.backgroundView = backgroundView
     }
     
@@ -313,6 +323,7 @@ public extension YKPieceUI {
         self.resolvedImage = Image(systemName: systemImage)
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = nil
         self.backgroundView = backgroundView
     }
     
@@ -322,24 +333,27 @@ public extension YKPieceUI {
         self.resolvedImage = image
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = nil
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with only a localized title and a background.
-    init(titleKey: LocalizedStringKey, sliceAngle: Double, backgroundView: AnyView) {
+    init(titleKey: LocalizedStringKey, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) {
         self.resolvedText = Text(titleKey)
         self.resolvedImage = nil
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
     
     /// Initializes a `YKPieceUI` with only a standard string title and a background.
-    init<S>(title: S, sliceAngle: Double, backgroundView: AnyView) where S: StringProtocol {
+    init<S>(title: S, sliceAngle: Double, textColor: Color? = nil, backgroundView: AnyView) where S: StringProtocol {
         self.resolvedText = Text(title)
         self.resolvedImage = nil
         self.resolvedCustomImage = nil
         self.sliceAngle = sliceAngle
+        self.resolvedTextColor = textColor
         self.backgroundView = backgroundView
     }
 }
@@ -364,6 +378,17 @@ struct YKPieceUI_Previews: PreviewProvider {
                         systemImage: "sparkles",
                         sliceAngle: 25.0,
                         backgroundView: AnyView(Color.teal)
+                    )
+                    .frame(width: 300, height: 300)
+                }
+                
+                VStack {
+                    Text("4. Text + Asset Image").font(.caption).foregroundColor(.gray)
+                    YKPieceUI(
+                        title: "5000000",
+                        image: Image(systemName: "bolt.fill"),
+                        sliceAngle: 60.0,
+                        backgroundView: AnyView(Color.blue)
                     )
                     .frame(width: 300, height: 300)
                 }
@@ -399,17 +424,6 @@ struct YKPieceUI_Previews: PreviewProvider {
                     .frame(width: 300, height: 300)
                 }
                  
-                VStack {
-                    Text("4. Text + Asset Image").font(.caption).foregroundColor(.gray)
-                    YKPieceUI(
-                        title: "500",
-                        image: Image(systemName: "bolt.fill"),
-                        sliceAngle: 60.0,
-                        backgroundView: AnyView(Color.blue)
-                    )
-                    .frame(width: 300, height: 300)
-                }
-                
                 VStack {
                     Text("5. Custom View Only").font(.caption).foregroundColor(.gray)
                     YKPieceUI(

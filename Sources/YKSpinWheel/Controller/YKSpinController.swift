@@ -14,9 +14,15 @@ private enum SpinPhysicsConstants {
     /// A full circle in degrees.
     static let fullCircleDegrees: Double = 360.0
     
+    /// Half of a full circle in degrees.
+    static let halfCircleDegrees: Double = 180.0
+    
     /// The ratio used to create a safe margin (padding) inside a slice.
     /// This prevents the pointer from stopping exactly on the line between two pieces.
     static let sliceSafeMarginRatio: Double = 0.15
+    
+    /// The multiplier used to convert seconds to nanoseconds.
+    static let nanosecondsPerSecond: Double = 1_000_000_000.0
 }
 
 // MARK: - YKSpinController
@@ -69,55 +75,78 @@ public class YKSpinController: ObservableObject {
     ///   - spinTurns: The number of full rotations the wheel will make before stopping. Default is 4.
     /// - Returns: The winning `SpinModel`, or `nil` if the wheel is already spinning or models are empty.
     public func startSpin(
-            spinTime: Double = 4.0,
-            spinTurns: Int = 4
-        ) async -> SpinModel? {
-            guard !isAnimating, !models.isEmpty else { return nil }
-            
-            isAnimating = true
-            
-            let winningIndex = Int.random(in: 0..<models.count)
-            let winningModel = models[winningIndex]
-            
-            let totalWeight = models.reduce(0.0) { $0 + $1.weight }
-            var previousWeights = 0.0
-            for i in 0..<winningIndex {
-                previousWeights += models[i].weight
-            }
-            
-            let winningWeight = winningModel.weight
-            let firstWeight = models[0].weight
-            
-            let centerWeightOffset = previousWeights + (winningWeight / 2.0) - (firstWeight / 2.0)
-            let currentCenterAngle = (centerWeightOffset / totalWeight) * 360.0
-            
-            let sliceAngle = (winningWeight / totalWeight) * 360.0
-            let safeMargin = sliceAngle * 0.15
-            let baseTarget = 360.0 - currentCenterAngle.truncatingRemainder(dividingBy: 360.0)
-            
-            let halfSlice = sliceAngle / 2.0
-            let safeOffsetBound = halfSlice - safeMargin
-            let internalOffset = Double.random(in: -safeOffsetBound...safeOffsetBound)
-            
-            var targetMod = baseTarget + internalOffset
-            if targetMod < 0 { targetMod += 360.0 }
-            if targetMod >= 360.0 { targetMod -= 360.0 }
-            
-            let currentMod = spinDegrees.truncatingRemainder(dividingBy: 360.0)
-            var shiftRequired = targetMod - currentMod
-            if shiftRequired < 0 { shiftRequired += 360.0 }
-            
-            let addedRotation = (Double(spinTurns) * 360.0) + shiftRequired
-            spinDegrees += addedRotation
-            
-            if #available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *) {
-                try? await Task.sleep(for: .seconds(spinTime))
-            } else {
-                let sleepNanoseconds = UInt64(spinTime * 1_000_000_000)
-                try? await Task.sleep(nanoseconds: sleepNanoseconds)
-            }
-            
-            isAnimating = false
-            return winningModel
+        spinTime: Double = 4.0,
+        spinTurns: Int = 4
+    ) async -> SpinModel? {
+        guard !isAnimating, !models.isEmpty else { return nil }
+        
+        isAnimating = true
+        animationDuration = spinTime
+        
+        let winningIndex = Int.random(in: 0..<models.count)
+        let winningModel = models[winningIndex]
+        let totalWeight = models.reduce(0.0) { $0 + $1.weight }
+        let previousWeights = calculatePreviousWeights(upTo: winningIndex)
+        let winningWeight = winningModel.weight
+        let firstWeight = models.first?.weight ?? 0.0
+
+        let centerWeightOffset = previousWeights + (winningWeight / 2.0) - (firstWeight / 2.0)
+        let currentCenterAngle = (centerWeightOffset / totalWeight) * SpinPhysicsConstants.fullCircleDegrees
+        let sliceAngle = (winningWeight / totalWeight) * SpinPhysicsConstants.fullCircleDegrees
+        let safeMargin = sliceAngle * SpinPhysicsConstants.sliceSafeMarginRatio
+        let baseTargetAngle = SpinPhysicsConstants.fullCircleDegrees - currentCenterAngle.truncatingRemainder(dividingBy: SpinPhysicsConstants.fullCircleDegrees)
+        
+        let halfSliceAngle = sliceAngle / 2.0
+        let safeOffsetBound = halfSliceAngle - safeMargin
+        let randomInternalOffset = Double.random(in: -safeOffsetBound...safeOffsetBound)
+        let targetAngleMod = normalizeAngle(baseTargetAngle + randomInternalOffset)
+        let currentAngleMod = spinDegrees.truncatingRemainder(dividingBy: SpinPhysicsConstants.fullCircleDegrees)
+        let requiredShift = calculateRequiredShift(from: currentAngleMod, to: targetAngleMod)
+        let addedRotationDegrees = (Double(spinTurns) * SpinPhysicsConstants.fullCircleDegrees) + requiredShift
+        
+        spinDegrees += addedRotationDegrees
+        await performSpinDelay(duration: spinTime)
+        isAnimating = false
+        return winningModel
+    }
+    
+}
+
+// MARK: - Private Helpers
+
+private extension YKSpinController {
+    
+    /// Calculates the sum of weights for all slices before the given index.
+    func calculatePreviousWeights(upTo index: Int) -> Double {
+        var total = 0.0
+        for i in 0..<index {
+            total += models[i].weight
         }
+        return total
+    }
+    
+    /// Normalizes an angle to ensure it falls within the 0 to 360 degrees range.
+    func normalizeAngle(_ angle: Double) -> Double {
+        var normalizedAngle = angle
+        if normalizedAngle < 0 { normalizedAngle += SpinPhysicsConstants.fullCircleDegrees }
+        if normalizedAngle >= SpinPhysicsConstants.fullCircleDegrees { normalizedAngle -= SpinPhysicsConstants.fullCircleDegrees }
+        return normalizedAngle
+    }
+    
+    /// Calculates the shortest positive degree shift required to reach the target angle.
+    func calculateRequiredShift(from currentMod: Double, to targetMod: Double) -> Double {
+        var shift = targetMod - currentMod
+        if shift < 0 { shift += SpinPhysicsConstants.fullCircleDegrees }
+        return shift
+    }
+    
+    /// Delays the task execution for the specified duration to match the UI animation.
+    func performSpinDelay(duration: Double) async {
+        if #available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *) {
+            try? await Task.sleep(for: .seconds(duration))
+        } else {
+            let sleepNanoseconds = UInt64(duration * SpinPhysicsConstants.nanosecondsPerSecond)
+            try? await Task.sleep(nanoseconds: sleepNanoseconds)
+        }
+    }
 }

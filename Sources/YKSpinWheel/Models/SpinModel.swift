@@ -46,7 +46,10 @@ public struct SpinModel: Identifiable {
     /// Default is 1.0. If one slice has a weight of 2.0 and another 1.0, the first will be twice as large.
     public let weight: Double
     
-    // MARK: - Initialization (Both Text and Image/Icon)
+    /// An optional color to override the default text color for this specific slice.
+    public let textColor: Color?
+    
+    // MARK: - Initialization (Provided Background)
     
     /// Initializes a spin model with a localized text and an sf image.
     public init<V>(
@@ -54,6 +57,7 @@ public struct SpinModel: Identifiable {
         textKey: LocalizedStringKey,
         sfImageName: String,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View {
         self.id = id
@@ -63,6 +67,7 @@ public struct SpinModel: Identifiable {
         self.customImage = nil
         self.sfImageName = sfImageName
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -72,6 +77,7 @@ public struct SpinModel: Identifiable {
         text: S,
         sfImageName: String,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View, S: StringProtocol {
         self.id = id
@@ -81,6 +87,7 @@ public struct SpinModel: Identifiable {
         self.customImage = nil
         self.sfImageName = sfImageName
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -90,6 +97,7 @@ public struct SpinModel: Identifiable {
         textKey: LocalizedStringKey,
         image: Image,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View {
         self.id = id
@@ -99,6 +107,7 @@ public struct SpinModel: Identifiable {
         self.customImage = nil
         self.sfImageName = nil
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -108,6 +117,7 @@ public struct SpinModel: Identifiable {
         text: S,
         image: Image,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View, S: StringProtocol {
         self.id = id
@@ -117,6 +127,7 @@ public struct SpinModel: Identifiable {
         self.customImage = nil
         self.sfImageName = nil
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -126,6 +137,7 @@ public struct SpinModel: Identifiable {
         textKey: LocalizedStringKey,
         customImage: C,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View, C: View {
         self.id = id
@@ -135,6 +147,7 @@ public struct SpinModel: Identifiable {
         self.sfImageName = nil
         self.customImage = AnyView(customImage)
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -144,6 +157,7 @@ public struct SpinModel: Identifiable {
         text: S,
         customImage: C,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View, S: StringProtocol, C: View {
         self.id = id
@@ -153,16 +167,16 @@ public struct SpinModel: Identifiable {
         self.sfImageName = nil
         self.customImage = AnyView(customImage)
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
-    
-    // MARK: - Initialization (Text Only)
     
     /// Initializes a spin model with only a localized text.
     public init<V>(
         id: Int,
         textKey: LocalizedStringKey,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View {
         self.id = id
@@ -172,6 +186,7 @@ public struct SpinModel: Identifiable {
         self.sfImageName = nil
         self.customImage = nil
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -180,6 +195,7 @@ public struct SpinModel: Identifiable {
         id: Int,
         text: S,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View, S: StringProtocol {
         self.id = id
@@ -189,16 +205,16 @@ public struct SpinModel: Identifiable {
         self.image = nil
         self.customImage = nil
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
-    
-    // MARK: - Initialization (Image/Icon Only)
     
     /// Initializes a spin model with only an sf image.
     public init<V>(
         id: Int,
         sfImageName: String,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View {
         self.id = id
@@ -208,6 +224,7 @@ public struct SpinModel: Identifiable {
         self.customImage = nil
         self.sfImageName = sfImageName
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -216,6 +233,7 @@ public struct SpinModel: Identifiable {
         id: Int,
         image: Image,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View {
         self.id = id
@@ -225,6 +243,7 @@ public struct SpinModel: Identifiable {
         self.customImage = nil
         self.sfImageName = nil
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
     }
     
@@ -233,6 +252,7 @@ public struct SpinModel: Identifiable {
         id: Int,
         customImage: C,
         weight: Double = 1.0,
+        textColor: Color? = nil,
         background: V
     ) where V: View, C: View {
         self.id = id
@@ -242,7 +262,126 @@ public struct SpinModel: Identifiable {
         self.sfImageName = nil
         self.customImage = AnyView(customImage)
         self.weight = weight
+        self.textColor = textColor
         self.background = AnyView(background)
+    }
+    
+    // MARK: - Initialization (Random Background)
+    
+    /// Initializes a spin model with a localized text, an sf image, and a random background color.
+    public init(
+        id: Int,
+        textKey: LocalizedStringKey,
+        sfImageName: String,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) {
+        self.init(id: id, textKey: textKey, sfImageName: sfImageName, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with a dynamic string text, an sf image, and a random background color.
+    public init<S>(
+        id: Int,
+        text: S,
+        sfImageName: String,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) where S: StringProtocol {
+        self.init(id: id, text: text, sfImageName: sfImageName, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with a localized text, an asset image, and a random background color.
+    public init(
+        id: Int,
+        textKey: LocalizedStringKey,
+        image: Image,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) {
+        self.init(id: id, textKey: textKey, image: image, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with a dynamic string text, an asset image, and a random background color.
+    public init<S>(
+        id: Int,
+        text: S,
+        image: Image,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) where S: StringProtocol {
+        self.init(id: id, text: text, image: image, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with a localized text, a custom image/view, and a random background color.
+    public init<C>(
+        id: Int,
+        textKey: LocalizedStringKey,
+        customImage: C,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) where C: View {
+        self.init(id: id, textKey: textKey, customImage: customImage, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with a dynamic string text, a custom image/view, and a random background color.
+    public init<S, C>(
+        id: Int,
+        text: S,
+        customImage: C,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) where S: StringProtocol, C: View {
+        self.init(id: id, text: text, customImage: customImage, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with only a localized text and a random background color.
+    public init(
+        id: Int,
+        textKey: LocalizedStringKey,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) {
+        self.init(id: id, textKey: textKey, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with only a dynamic string text and a random background color.
+    public init<S>(
+        id: Int,
+        text: S,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) where S: StringProtocol {
+        self.init(id: id, text: text, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with only an sf image and a random background color.
+    public init(
+        id: Int,
+        sfImageName: String,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) {
+        self.init(id: id, sfImageName: sfImageName, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with only an asset image and a random background color.
+    public init(
+        id: Int,
+        image: Image,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) {
+        self.init(id: id, image: image, weight: weight, textColor: textColor, background: Color.ykRandom())
+    }
+    
+    /// Initializes a spin model with only a custom image/view and a random background color.
+    public init<C>(
+        id: Int,
+        customImage: C,
+        weight: Double = 1.0,
+        textColor: Color? = nil
+    ) where C: View {
+        self.init(id: id, customImage: customImage, weight: weight, textColor: textColor, background: Color.ykRandom())
     }
 }
 
@@ -257,5 +396,19 @@ extension SpinModel: Hashable, Equatable {
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+// MARK: - Random Color Helper
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+private extension Color {
+    /// Generates a random, visually pleasing color using HSB constraints.
+    static func ykRandom() -> Color {
+        Color(
+            hue: .random(in: 0...1),
+            saturation: .random(in: 0.5...0.8),
+            brightness: .random(in: 0.7...0.9)
+        )
     }
 }
