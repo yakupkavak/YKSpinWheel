@@ -109,4 +109,20 @@ public extension View {
     func ykPieceNormalLineLimit(_ limit: Int) -> some View {
         environment(\.ykPieceNormalLineLimit, limit)
     }
+    
+    /// Sets the maximum angle for a slice to be considered "thin" in `YKPieceUI`.
+    ///
+    /// Thin slices dynamically change their layout (e.g., stacking text vertically and rotating it). Use this modifier to adjust when that transition happens.
+    ///
+    /// - Parameter threshold: The threshold angle in degrees.
+    /// - Returns: A view that applies the specified threshold.
+    ///
+    /// - Example:
+    /// ```swift
+    /// YKPieceUI(...)
+    ///     .ykPieceThinSliceAngleThreshold(40.0)
+    /// ```
+    func ykPieceThinSliceAngleThreshold(_ threshold: Double) -> some View {
+        environment(\.ykPieceThinSliceAngleThreshold, threshold)
+    }
 }
