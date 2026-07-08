@@ -372,6 +372,26 @@ struct YKPieceUI_Previews: PreviewProvider {
                     .padding(.top, 20)
                 
                 VStack {
+                    Text("6. Text + Custom View").font(.caption).foregroundColor(.gray)
+                    YKPieceUI(
+                        title: "SPECIAL",
+                        customImage: AnyView(
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.white)
+                                    .frame(width: 45, height: 45)
+                                Text("KF")
+                                    .font(.headline)
+                                    .foregroundColor(.red)
+                            }
+                        ),
+                        sliceAngle: 60.0,
+                        backgroundView: AnyView(Color.red)
+                    )
+                    .frame(width: 300, height: 300)
+                }
+                
+                VStack {
                     Text("7. Thin Slice (Vertical Text)").font(.caption).foregroundColor(.red)
                     YKPieceUI(
                         title: "SUPERRRR",
@@ -439,25 +459,7 @@ struct YKPieceUI_Previews: PreviewProvider {
                     .frame(width: 300, height: 300)
                 }
                 
-                VStack {
-                    Text("6. Text + Custom View").font(.caption).foregroundColor(.gray)
-                    YKPieceUI(
-                        title: "SPECIAL",
-                        customImage: AnyView(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.white)
-                                    .frame(width: 45, height: 45)
-                                Text("KF")
-                                    .font(.headline)
-                                    .foregroundColor(.red)
-                            }
-                        ),
-                        sliceAngle: 60.0,
-                        backgroundView: AnyView(Color.red)
-                    )
-                    .frame(width: 300, height: 300)
-                }
+                
             }
             .padding(.bottom, 50)
         }
