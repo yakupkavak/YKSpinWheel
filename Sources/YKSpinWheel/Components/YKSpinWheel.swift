@@ -153,6 +153,9 @@ public struct YKSpinWheel<Center: View, WheelTopPointer: View>: View {
                     .accessibilityElement(children: .ignore)
                 } else {
                     center
+                        .frame(width: centerHubSize, height: centerHubSize)
+                        .shadow(color: centerHubShadowColor, radius: centerHubShadowRadius, x: 0, y: centerHubShadowY)
+                        .clipShape(Circle())
                 }
                 
                 // MARK: Top Indicator Triangle
@@ -163,6 +166,8 @@ public struct YKSpinWheel<Center: View, WheelTopPointer: View>: View {
                         .offset(y: -wheelRadius + pointerOffset)
                 } else {
                     wheelTopPointer
+                        .frame(width: pointerWidth, height: pointerHeight)
+                        .offset(y: -wheelRadius + pointerOffset)
                 }
             }
             .frame(width: minDimension, height: minDimension)
@@ -312,7 +317,7 @@ struct YKSpinWheel_Previews: PreviewProvider {
         init() {
             let models = [
                 SpinModel(id: 1, text: "PASS", weight: 1.0, background: Color.red),
-                SpinModel(id: 2, text: "1000", sfImageName: "star.fill", weight: 2.5, textColor: .white, background: Color.orange),
+                SpinModel(id: 2, text: "1000", sfImageName: "star.fill", weight: 2.5, textColor: .black, background: Color.orange),
                 SpinModel(id: 3, sfImageName: "gift.fill", weight: 1.0, background: Color.green),
                 SpinModel(
                     id: 4,
@@ -324,11 +329,11 @@ struct YKSpinWheel_Previews: PreviewProvider {
                         }.frame(width: 40, height: 40)
                     ),
                     weight: 1.5,
-                    textColor: .white,
+                    textColor: .yellow,
                     background: Color.purple
                 ),
                 SpinModel(id: 5, text: "5000000", image: Image(systemName: "bolt.fill"), weight: 1.0, textColor: .white, background: Color.blue),
-                SpinModel(id: 6, text: "BANKRUPT", weight: 2.0, textColor: .white, background: Color.black)
+                SpinModel(id: 6, text: "BANKRUPT", weight: 2.0, textColor: .red, background: Color.black)
             ]
             _spinControllers = State(initialValue: (0..<100).map { _ in YKSpinController(models: models) })
         }
